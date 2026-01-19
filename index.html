@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>DapoerUyut</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/index.css">
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-top">
+    <button id="hamburger" class="hamburger">☰</button>
+    <div id="logo" data-nav="home">DapoerUyut</div>
+    <div id="cartBtn">🛒 <span id="cartCount">0</span></div>
+  </div>
+  <div class="header-bottom">
+    <input id="search" placeholder="Cari produk...">
+  </div>
+</header>
+
+<!-- SIDE MENU -->
+<div id="sideMenu" class="side-menu hidden">
+  <div data-nav="home">🏠 Home</div>
+  <div data-nav="products">🛍️ Produk</div>
+  <div data-nav="orders">📦 Pesanan</div>
+  <div data-nav="profile">👤 Akun</div>
+</div>
+
+<!-- LOGIN BANNER -->
+<div id="loginBanner">
+  <p>Tak kenal maka tak sayang</p>
+  <a href="login.html"><button id="loginBtn">Login</button></a>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-container">
+    <div class="hero-left">
+      <h1>Enjoy Your <span>Delicious Food</span></h1>
+      <p>Kami antar makanan kamu cepat, hangat, dan enak.</p>
+
+      <div class="hero-actions">
+        <button id="heroOrderBtn" class="order-btn">Order Now</button>
+        <button id="heroMenuBtn" class="play-btn">▶</button>
+      </div>
+
+      <div class="hero-categories">
+        <div data-category="makanan">🍗 Ayam</div>
+        <div data-category="makanan">🍔 Burger</div>
+        <div data-category="minuman">☕ Kopi</div>
+      </div>
+    </div>
+
+    <div class="hero-right">
+      <div class="hero-image-box">
+        <img src="gambar/flash-sale.jpg" alt="Promo">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- APP -->
+<main id="app">
+
+  <!-- HOME -->
+  <section id="home" class="page active">
+    <div class="banner">PAKET SPESIAL</div>
+    <div id="productToday" class="grid"></div>
+  </section>
+
+  <!-- PRODUCTS -->
+  <section id="products" class="page">
+    <div class="banner">PRODUK</div>
+    <div id="productCategories" class="categories"></div>
+    <div id="productGrid" class="grid"></div>
+  </section>
+
+  <!-- CART -->
+  <section id="cart" class="page">
+    <h3>Checkout</h3>
+    <div id="cartItems"></div>
+    <p>Total: Rp <span id="total">0</span></p>
+
+    <form id="checkoutForm">
+      <input type="text" id="checkoutName" placeholder="Nama" required>
+      <input type="text" id="checkoutAddress" placeholder="Alamat" required>
+      <textarea id="checkoutNote" placeholder="Catatan (opsional)"></textarea>
+      <button type="button" id="submitOrder">Checkout Sekarang</button>
+      <label><b>Metode Pembayaran</b></label>
+      <select id="paymentMethod" required>
+        <option value="">-- Pilih Pembayaran --</option>
+        <option value="COD">COD</option>
+        <option value="Transfer">Transfer Bank</option>
+        <option value="E-Wallet">E-Wallet</option>
+      </select>
+
+      <label><b>Metode Pengiriman</b></label>
+      <select id="shippingMethod" required>
+        <option value="">-- Pilih Pengiriman --</option>
+        <option value="JNE">JNE (Rp 10.000)</option>
+        <option value="TIKI">TIKI (Rp 12.000)</option>
+        <option value="POS">POS (Rp 8.000)</option>
+      </select>
+
+    </form>
+  </section>
+
+  <!-- ORDERS -->
+  <section id="orders" class="page">
+    <h3>Pesanan Saya</h3>
+    <div id="orderList">(Belum ada pesanan)</div>
+  </section>
+
+  <!-- PROFILE -->
+  <section id="profile" class="page">
+    <h3>Akun</h3>
+    <div id="authArea"></div>
+  </section>
+
+</main>
+<footer>
+  <caption>DapoerUyut - Solusi Makanan Lezat dan Cepat Diantar!</caption>
+  <br>
+  <br>
+  &copy; 2024 DapoerUyut. All rights reserved.
+</footer>
+
+<!-- CHAT -->
+<div id="chatBox" class="chat hidden">
+  <header>
+    Customer Service
+    <span id="closeChat">✖</span>
+  </header>
+  <div id="messages"></div>
+  <input id="chatInput" placeholder="Ketik pesan...">
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <div data-nav="home">🏠<br>Home</div>
+  <div data-nav="products">🛍️<br>Produk</div>
+  <div id="chatToggle">💬<br>Chat</div>
+  <div data-nav="profile">👤<br>Akun</div>
+</nav>
+
+<script type="module" src="js/index.js"></script>
+</body>
+</html>
