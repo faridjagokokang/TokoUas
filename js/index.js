@@ -3,7 +3,7 @@ import { initChat } from './chat.js';
 /* ================= STATE ================= */
 const state = {
   user: JSON.parse(localStorage.getItem('user')) || null,
-  cart: JSON.parse(localStorage.getItem('cart')) || [], // [{productId, qty}]
+  cart: JSON.parse(localStorage.getItem('cart')) || [], // [{id,name,price,img,qty}]
   orders: JSON.parse(localStorage.getItem('orders')) || [],
 };
 
@@ -37,13 +37,7 @@ function showPage(id) {
   pages.forEach(p => p.classList.remove('active'));
 
   const page = document.getElementById(id);
-  if (!page) {
-    console.error("Page not found:", id);
-    return;
-  }
-
-  page.classList.add('active');
-
+  if (page) page.classList.add('active');
 
   const hero = document.querySelector('.hero');
   if (hero) hero.style.display = id === 'home' ? 'grid' : 'none';
@@ -90,7 +84,7 @@ function renderLoginState() {
   }
 }
 
-/* ================= CART ================= */
+/* ================= CART CORE ================= */
 function saveCart() {
   localStorage.setItem('cart', JSON.stringify(state.cart));
   updateCartCount();
@@ -102,18 +96,32 @@ function updateCartCount() {
 }
 
 function addToCart(product) {
-  const item = state.cart.find(i => i.productId === product.id);
-  if (item) item.qty++;
-  else state.cart.push({ productId: product.id, qty: 1 });
+  const item = state.cart.find(i => i.id === product.id);
+
+  if (item) {
+    item.qty++;
+  } else {
+    state.cart.push({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      img: product.img,
+      qty: 1
+    });
+  }
+
   saveCart();
   alert('Ditambahkan ke keranjang');
 }
+
 /* ================= SEARCH ================= */
 function bindSearch() {
   const searchInput = document.getElementById('search');
   searchInput.oninput = () => {
-    const query = searchInput.value.toLowerCase();
-    const filtered = allProducts.filter(p => p.name.toLowerCase().includes(query) || p.Desc.toLowerCase().includes(query));
+    const q = searchInput.value.toLowerCase();
+    const filtered = allProducts.filter(p =>
+      p.name.toLowerCase().includes(q) || p.Desc.toLowerCase().includes(q)
+    );
     renderCardList('productGrid', filtered);
   };
 }
@@ -123,10 +131,7 @@ function loadDummyExclusiveTodayProducts() {
   const products = [
     { id:1001, img:'gambar/crispy-hemat.jpg', name:'Paket Crispy Hemat', price:25000, Desc:'1 pcs ayam + nasi' },
     { id:1002, img:'gambar/keluarga-cuan.jpg', name:'Paket Keluarga', price:75000, Desc:'4 pcs ayam + nasi' },
-    { id:1003, img:'gambar/lezat.jpg', name:'Paket Lezat', price:20000, Desc:'1 pcs ayam + nasi + Red Velvet Coffee 1 + Yakult Mangga 1' },
-    { id:1004, img:'gambar/segar-gigit.jpg', name:'Paket Segar Gigit', price:40000, Desc:'1 pcs burger + 1 Green Tea Lemon' },
-    { id:1005, img:'gambar/paket-frozeen-food.jpg', name:'Paket Frozen Food', price:60000, Desc:'1 pack ikan asin lendra + 1 pack ikan asin teri + 1 pack ikan asin keranjang + 1 pack sayap ayam potong' },
-  
+    { id:1003, img:'gambar/lezat.jpg', name:'Paket Lezat', price:20000, Desc:'Paket lengkap' },
   ];
   renderCardList('productToday', products);
 }
@@ -396,6 +401,37 @@ function renderCardList(targetId, products) {
   });
 }
 
+
+/* ================= RENDER PRODUCT ================= */
+function renderCardList(targetId, products) {
+  const grid = document.getElementById(targetId);
+  grid.innerHTML = '';
+
+  products.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'product-card';
+    card.innerHTML = `
+      <img src="${p.img}">
+      <div class="content">
+        <h4>${p.name}</h4>
+        <p class="price">Rp ${p.price.toLocaleString()}</p>
+        <p>${p.Desc}</p>
+        <div class="actions">
+          <button class="btn-cart">Keranjang</button>
+          <button class="btn-buy">Beli</button>
+        </div>
+      </div>
+    `;
+    card.querySelector('.btn-cart').onclick = () => addToCart(p);
+    card.querySelector('.btn-buy').onclick = () => {
+      addToCart(p);
+      showPage('cart');
+      renderCart();
+    };
+    grid.appendChild(card);
+  });
+}
+
 /* ================= CART RENDER ================= */
 function renderCart() {
   const wrap = document.getElementById('cartItems');
@@ -410,19 +446,16 @@ function renderCart() {
   }
 
   state.cart.forEach((item, index) => {
-    const product = allProducts.find(p => p.id === item.productId);
-    if (!product) return;
-
-    const subtotal = product.price * item.qty;
+    const subtotal = item.price * item.qty;
     total += subtotal;
 
     const card = document.createElement('div');
     card.className = 'cart-card';
     card.innerHTML = `
-      <img src="${product.img}" class="cart-img">
+      <img src="${item.img}" class="cart-img">
       <div class="cart-info">
-        <b>${product.name}</b>
-        <div class="cart-price">Rp ${product.price.toLocaleString()}</div>
+        <b>${item.name}</b>
+        <div class="cart-price">Rp ${item.price.toLocaleString()}</div>
         <div class="cart-actions">
           <button class="dec">−</button>
           <span>${item.qty}</span>
@@ -432,14 +465,18 @@ function renderCart() {
       </div>
     `;
 
-    card.querySelector('.inc').onclick = () => { item.qty++; saveCart(); renderCart(); };
+    card.querySelector('.inc').onclick = () => {
+      item.qty++; saveCart(); renderCart();
+    };
+
     card.querySelector('.dec').onclick = () => {
       item.qty--;
       if (item.qty <= 0) state.cart.splice(index, 1);
       saveCart(); renderCart();
     };
+
     card.querySelector('.del').onclick = () => {
-      if (confirm('Hapus item ini dari keranjang?')) {
+      if (confirm('Hapus item ini?')) {
         state.cart.splice(index, 1);
         saveCart(); renderCart();
       }
@@ -465,18 +502,20 @@ function bindCheckout() {
     const payment = paymentMethod.value;
     const shipping = shippingMethod.value;
 
-    let shippingCost = shipping === 'JNE' ? 10000 : shipping === 'TIKI' ? 12000 : 8000;
+    if (!name || !address || !payment || !shipping) {
+      alert('Lengkapi data!');
+      return;
+    }
 
-    const orderItems = state.cart.map(c => {
-      const p = allProducts.find(p => p.id === c.productId);
-      return {
-        productId: p.id,
-        name: p.name,
-        price: p.price,
-        qty: c.qty,
-        subtotal: p.price * c.qty
-      };
-    });
+    const shippingCost = shipping === 'JNE' ? 10000 : shipping === 'TIKI' ? 12000 : 8000;
+
+    const orderItems = state.cart.map(i => ({
+      id: i.id,
+      name: i.name,
+      price: i.price,
+      qty: i.qty,
+      subtotal: i.price * i.qty
+    }));
 
     const itemsTotal = orderItems.reduce((s, i) => s + i.subtotal, 0);
     const finalTotal = itemsTotal + shippingCost;
@@ -567,3 +606,9 @@ function showInvoice(invoiceNumber) {
 document.getElementById('closeInvoice').onclick = () => {
   document.getElementById('invoiceModal').classList.add('hidden');
 };
+
+/* ================= HERO ================= */
+function bindHeroActions() {
+  document.getElementById('heroOrderBtn')?.addEventListener('click', () => showPage('products'));
+  document.getElementById('heroMenuBtn')?.addEventListener('click', () => showPage('home'));
+}
