@@ -95,7 +95,17 @@ body {background: var(--bg-color); color: var(--dark-red);}
 .waBtn:hover {background:#1ebe5d;}
 
 /* BOTTOM NAV */
-.bottom-nav {position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:1px solid #ddd; display:flex; justify-content:space-around; padding:10px 0;}
+.bottom-nav {
+  position: fixed; 
+  bottom:0; 
+  left:0; 
+  right:0; 
+  background:#fff; 
+  border-top:1px solid #ddd; 
+  display:flex; 
+  justify-content:space-around; 
+  padding:10px 0;
+}
 
 #chatBox {
   position: fixed;
@@ -136,6 +146,37 @@ body {background: var(--bg-color); color: var(--dark-red);}
   outline: none;
   border: none;
 }
+
+.invoice-modal {
+  position: fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content:center;
+  align-items:center;
+  z-index:5000;
+}
+
+.invoice-modal.hidden {
+  display: none;
+}
+
+.invoice-content {
+  background: #fff;
+  padding: 20px;
+  max-width: 90%;
+  max-height: 90%;
+  overflow-y: auto;
+  border-radius: 12px;
+}
+
+.invoice-content .close {
+  float: right;
+  font-size: 24px;
+  cursor: pointer;
+}
+
  @media (max-width:768px) {
   .bottom-nav {display:flex; justify-content:space-around; padding:12px 0;}
  }

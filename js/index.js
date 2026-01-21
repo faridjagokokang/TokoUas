@@ -3,7 +3,7 @@ import { initChat } from './chat.js';
 /* ================= STATE ================= */
 const state = {
   user: JSON.parse(localStorage.getItem('user')) || null,
-  cart: JSON.parse(localStorage.getItem('cart')) || [],
+  cart: JSON.parse(localStorage.getItem('cart')) || [], // [{productId, qty}]
   orders: JSON.parse(localStorage.getItem('orders')) || [],
 };
 
@@ -35,10 +35,16 @@ renderCart();
 /* ================= NAVIGATION ================= */
 function showPage(id) {
   pages.forEach(p => p.classList.remove('active'));
-  const page = document.getElementById(id);
-  if (page) page.classList.add('active');
 
-  // Hero cuma tampil di home
+  const page = document.getElementById(id);
+  if (!page) {
+    console.error("Page not found:", id);
+    return;
+  }
+
+  page.classList.add('active');
+
+
   const hero = document.querySelector('.hero');
   if (hero) hero.style.display = id === 'home' ? 'grid' : 'none';
 
@@ -49,12 +55,16 @@ function bindNavigation() {
   navButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       const target = btn.dataset.nav;
-      if (target) showPage(target);
+      if (!target) return;
+
+      showPage(target);
+
       if (target === 'orders') renderOrderList();
-      if (target === 'cart') renderCart();
+      if (target === 'cart') renderCart(); 
     });
   });
 }
+
 
 function bindHamburger() {
   hamburger.onclick = () => sideMenu.classList.toggle('hidden');
@@ -92,17 +102,21 @@ function updateCartCount() {
 }
 
 function addToCart(product) {
-  const item = state.cart.find(i => i.product.id === product.id);
+  const item = state.cart.find(i => i.productId === product.id);
   if (item) item.qty++;
-  else state.cart.push({ product, qty: 1 });
+  else state.cart.push({ productId: product.id, qty: 1 });
   saveCart();
   alert('Ditambahkan ke keranjang');
 }
-
-document.getElementById('cartBtn').onclick = () => {
-  showPage('cart');
-  renderCart();
-};
+/* ================= SEARCH ================= */
+function bindSearch() {
+  const searchInput = document.getElementById('search');
+  searchInput.oninput = () => {
+    const query = searchInput.value.toLowerCase();
+    const filtered = allProducts.filter(p => p.name.toLowerCase().includes(query) || p.Desc.toLowerCase().includes(query));
+    renderCardList('productGrid', filtered);
+  };
+}
 
 /* ================= PRODUCTS ================= */
 function loadDummyExclusiveTodayProducts() {
@@ -382,21 +396,7 @@ function renderCardList(targetId, products) {
   });
 }
 
-/* ================= SEARCH ================= */
-function bindSearch() {
-  document.getElementById('search').addEventListener('input', e => {
-    const q = e.target.value.toLowerCase();
-    const filtered = allProducts.filter(p => p.name.toLowerCase().includes(q));
-    renderCardList('productGrid', filtered);
-    if (!q) {
-  renderCardList('productGrid', allProducts);
-  return;
-}
-
-  });
-}
-
-/* ================= CART ================= */
+/* ================= CART RENDER ================= */
 function renderCart() {
   const wrap = document.getElementById('cartItems');
   const totalEl = document.getElementById('total');
@@ -410,16 +410,19 @@ function renderCart() {
   }
 
   state.cart.forEach((item, index) => {
-    const subtotal = item.product.price * item.qty;
+    const product = allProducts.find(p => p.id === item.productId);
+    if (!product) return;
+
+    const subtotal = product.price * item.qty;
     total += subtotal;
 
     const card = document.createElement('div');
     card.className = 'cart-card';
     card.innerHTML = `
-      <img src="${item.product.img}" class="cart-img">
+      <img src="${product.img}" class="cart-img">
       <div class="cart-info">
-        <b>${item.product.name}</b>
-        <div class="cart-price">Rp ${item.product.price.toLocaleString()}</div>
+        <b>${product.name}</b>
+        <div class="cart-price">Rp ${product.price.toLocaleString()}</div>
         <div class="cart-actions">
           <button class="dec">−</button>
           <span>${item.qty}</span>
@@ -428,16 +431,19 @@ function renderCart() {
         </div>
       </div>
     `;
-    card.querySelector('.inc').onclick = () => { item.qty++; saveCart(); renderCart(); };
-    card.querySelector('.dec').onclick = () => { item.qty--; if(item.qty<=0) state.cart.splice(index,1); saveCart(); renderCart(); };
-    card.querySelector('.del').onclick = () => {
-  if (confirm('Hapus item ini dari keranjang?')) {
-    state.cart.splice(index,1);
-    saveCart();
-    renderCart();
-  }
-};
 
+    card.querySelector('.inc').onclick = () => { item.qty++; saveCart(); renderCart(); };
+    card.querySelector('.dec').onclick = () => {
+      item.qty--;
+      if (item.qty <= 0) state.cart.splice(index, 1);
+      saveCart(); renderCart();
+    };
+    card.querySelector('.del').onclick = () => {
+      if (confirm('Hapus item ini dari keranjang?')) {
+        state.cart.splice(index, 1);
+        saveCart(); renderCart();
+      }
+    };
 
     wrap.appendChild(card);
   });
@@ -451,65 +457,58 @@ function bindCheckout() {
   if (!checkoutBtn) return;
 
   checkoutBtn.onclick = () => {
-  if (state.cart.length === 0) { alert('Keranjang masih kosong!'); return; }
+    if (state.cart.length === 0) return alert('Keranjang kosong');
 
-  const name = checkoutName.value.trim();
-  const address = checkoutAddress.value.trim();
-  const note = checkoutNote.value.trim();
-  const payment = document.getElementById('paymentMethod').value;
-  const shipping = document.getElementById('shippingMethod').value;
+    const name = checkoutName.value.trim();
+    const address = checkoutAddress.value.trim();
+    const note = checkoutNote.value.trim();
+    const payment = paymentMethod.value;
+    const shipping = shippingMethod.value;
 
-  if (!name || !address || !payment || !shipping) {
-    alert('Lengkapi semua data checkout!');
-    return;
-  }
+    let shippingCost = shipping === 'JNE' ? 10000 : shipping === 'TIKI' ? 12000 : 8000;
 
-  let shippingCost = 0;
-  if (shipping === 'JNE') shippingCost = 10000;
-  if (shipping === 'TIKI') shippingCost = 12000;
-  if (shipping === 'POS') shippingCost = 8000;
+    const orderItems = state.cart.map(c => {
+      const p = allProducts.find(p => p.id === c.productId);
+      return {
+        productId: p.id,
+        name: p.name,
+        price: p.price,
+        qty: c.qty,
+        subtotal: p.price * c.qty
+      };
+    });
 
-  const itemsTotal = state.cart.reduce((sum, i) => sum + i.product.price * i.qty, 0);
-  const finalTotal = itemsTotal + shippingCost;
+    const itemsTotal = orderItems.reduce((s, i) => s + i.subtotal, 0);
+    const finalTotal = itemsTotal + shippingCost;
 
-  const order = {
-    id: Date.now(),
-    customer: name,
-    address,
-    note,
-    items: [...state.cart],
-    payment,
-    shipping,
-    shippingCost,
-    total: finalTotal,
-    date: new Date().toLocaleString()
+    const now = new Date();
+    const invoice = `INV-${now.getTime()}`;
+
+    const order = {
+      invoice,
+      customer: { name, address },
+      note,
+      items: orderItems,
+      subtotal: itemsTotal,
+      payment,
+      shipping,
+      shippingCost,
+      total: finalTotal,
+      status: 'Menunggu konfirmasi',
+      date: now.toLocaleString()
+    };
+
+    state.orders.push(order);
+    localStorage.setItem('orders', JSON.stringify(state.orders));
+
+    state.cart = [];
+    saveCart();
+    renderCart();
+    renderOrderList();
+
+    alert('Pesanan berhasil dibuat!');
+    showPage('home');
   };
-
-  state.orders.push(order);
-  localStorage.setItem('orders', JSON.stringify(state.orders));
-
-  state.cart = [];
-  saveCart();
-  renderCart();
-  renderOrderList();
-
-  alert('Pesanan berhasil dibuat!');
-
-  const waMessage = `Halo, saya pesan:
-${order.items.map(i=>`${i.product.name} x${i.qty}`).join('\n')}
-Subtotal: Rp ${itemsTotal.toLocaleString()}
-Ongkir: Rp ${shippingCost.toLocaleString()}
-Total: Rp ${finalTotal.toLocaleString()}
-Pembayaran: ${payment}
-Pengiriman: ${shipping}
-Nama: ${name}
-Alamat: ${address}
-Catatan: ${note}`;
-
-  window.open(`https://wa.me/6287755466436?text=${encodeURIComponent(waMessage)}`, '_blank');
-
-  showPage('home');
-};
 }
 
 /* ================= ORDER HISTORY ================= */
@@ -525,31 +524,46 @@ function renderOrderList() {
   state.orders.slice().reverse().forEach(order => {
     const div = document.createElement('div');
     div.className = 'cart-card';
-   div.innerHTML = `
-  <b>Order ID: ${order.id}</b>
-  <div>${order.date}</div>
-  <div>Customer: ${order.customer}</div>
-  <div>Items: ${order.items.map(i=>`${i.product.name} x${i.qty}`).join(', ')}</div>
-  <div>Pengiriman: ${order.shipping} (Rp ${order.shippingCost.toLocaleString()})</div>
-  <div>Pembayaran: ${order.payment}</div>
-  <div><b>Total: Rp ${order.total.toLocaleString()}</b></div>
-`;
-
+    div.innerHTML = `
+      <b>Invoice: ${order.invoice}</b>
+      <div>${order.date}</div>
+      <div>Status: ${order.status}</div>
+      <div>Total: Rp ${order.total.toLocaleString()}</div>
+      <button>Lihat Invoice</button>
+    `;
+    div.querySelector('button').onclick = () => showInvoice(order.invoice);
     wrap.appendChild(div);
   });
 }
 
-/* ================= HERO ================= */
-function bindHeroActions() {
-  document.getElementById('heroOrderBtn')?.addEventListener('click', () => showPage('products'));
-  document.getElementById('heroMenuBtn')?.addEventListener('click', () => showPage('home'));
+/* ================= INVOICE ================= */
+function showInvoice(invoiceNumber) {
+  const order = state.orders.find(o => o.invoice === invoiceNumber);
+  if (!order) return alert('Invoice tidak ditemukan');
+
+  const modal = document.getElementById('invoiceModal');
+  const body = document.getElementById('invoiceBody');
+
+  body.innerHTML = `
+    <h2>INVOICE</h2>
+    <p>No: ${order.invoice}</p>
+    <p>Nama: ${order.customer.name}</p>
+    <p>Alamat: ${order.customer.address}</p>
+    <hr>
+    ${order.items.map(i => `
+      <div style="display:flex;justify-content:space-between">
+        <span>${i.name} x${i.qty}</span>
+        <span>Rp ${i.subtotal.toLocaleString()}</span>
+      </div>
+    `).join('')}
+    <hr>
+    <h3>Total: Rp ${order.total.toLocaleString()}</h3>
+    <button onclick="window.print()">Print</button>
+  `;
+
+  modal.classList.remove('hidden');
 }
 
-/* ================= CHAT BOX ================= */
-const chatBox = document.getElementById('chatBox');
-document.getElementById('chatToggle').addEventListener('click', () => {
-  chatBox.style.display = chatBox.style.display === 'flex' ? 'none' : 'flex';
-});
-document.getElementById('closeChat').addEventListener('click', () => {
-  chatBox.style.display = 'none';
-});
+document.getElementById('closeInvoice').onclick = () => {
+  document.getElementById('invoiceModal').classList.add('hidden');
+};

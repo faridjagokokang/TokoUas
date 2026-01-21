@@ -13,7 +13,7 @@
   <div class="header-top">
     <button id="hamburger" class="hamburger">☰</button>
     <div id="logo" data-nav="home">DapoerUyut</div>
-    <div id="cartBtn">🛒 <span id="cartCount">0</span></div>
+    <div id="cartBtn" data-nav="cart">🛒 <span id="cartCount">0</span></div>
   </div>
   <div class="header-bottom">
     <input id="search" placeholder="Cari produk...">
@@ -87,7 +87,6 @@
       <input type="text" id="checkoutName" placeholder="Nama" required>
       <input type="text" id="checkoutAddress" placeholder="Alamat" required>
       <textarea id="checkoutNote" placeholder="Catatan (opsional)"></textarea>
-      <button type="button" id="submitOrder">Checkout Sekarang</button>
       <label><b>Metode Pembayaran</b></label>
       <select id="paymentMethod" required>
         <option value="">-- Pilih Pembayaran --</option>
@@ -95,7 +94,6 @@
         <option value="Transfer">Transfer Bank</option>
         <option value="E-Wallet">E-Wallet</option>
       </select>
-
       <label><b>Metode Pengiriman</b></label>
       <select id="shippingMethod" required>
         <option value="">-- Pilih Pengiriman --</option>
@@ -103,6 +101,7 @@
         <option value="TIKI">TIKI (Rp 12.000)</option>
         <option value="POS">POS (Rp 8.000)</option>
       </select>
+      <button type="button" id="submitOrder">Checkout Sekarang</button>
 
     </form>
   </section>
@@ -144,6 +143,15 @@
   <div id="chatToggle">💬<br>Chat</div>
   <div data-nav="profile">👤<br>Akun</div>
 </nav>
+
+<!-- MODAL INVOICE -->
+<div id="invoiceModal" class="invoice-modal hidden">
+  <div class="invoice-content">
+    <span id="closeInvoice" class="close">&times;</span>
+    <div id="invoiceBody"></div>
+  </div>
+</div>
+
 
 <script type="module" src="js/index.js"></script>
 </body>
