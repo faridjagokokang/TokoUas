@@ -275,3 +275,66 @@ function renderCardList(targetId, products) {
     grid.appendChild(card);
   });
 }
+
+/* ================= ORDER HISTORY ================= */
+function renderOrderList() {
+  const wrap = document.getElementById('orderList');
+  wrap.innerHTML = '';
+
+  if (state.orders.length === 0) {
+    wrap.innerHTML = '(Belum ada pesanan)';
+    return;
+  }
+
+  state.orders.slice().reverse().forEach(order => {
+    const div = document.createElement('div');
+    div.className = 'cart-card';
+    div.innerHTML = `
+      <b>Invoice: ${order.invoice}</b>
+      <div>${order.date}</div>
+      <div>Status: ${order.status}</div>
+      <div>Total: Rp ${order.total.toLocaleString()}</div>
+      <button>Lihat Invoice</button>
+    `;
+    div.querySelector('button').onclick = () => showInvoice(order.invoice);
+    wrap.appendChild(div);
+  });
+}
+
+/* ================= INVOICE ================= */
+function showInvoice(invoiceNumber) {
+  const order = state.orders.find(o => o.invoice === invoiceNumber);
+  if (!order) return alert('Invoice tidak ditemukan');
+
+  const modal = document.getElementById('invoiceModal');
+  const body = document.getElementById('invoiceBody');
+
+  body.innerHTML = `
+    <h2>INVOICE</h2>
+    <p>No: ${order.invoice}</p>
+    <p>Nama: ${order.customer.name}</p>
+    <p>Alamat: ${order.customer.address}</p>
+    <hr>
+    ${order.items.map(i => `
+      <div style="display:flex;justify-content:space-between">
+        <span>${i.name} x${i.qty}</span>
+        <span>Rp ${i.subtotal.toLocaleString()}</span>
+      </div>
+    `).join('')}
+    <hr>
+    <h3>Total: Rp ${order.total.toLocaleString()}</h3>
+    <button onclick="window.print()">Print</button>
+  `;
+
+  modal.classList.remove('hidden');
+}
+
+document.getElementById('closeInvoice').onclick = () => {
+  document.getElementById('invoiceModal').classList.add('hidden');
+};
+
+/* ================= HERO ================= */
+function bindHeroActions() {
+  document.getElementById('heroOrderBtn')?.addEventListener('click', () => showPage('products'));
+  document.getElementById('heroMenuBtn')?.addEventListener('click', () => showPage('home'));
+}

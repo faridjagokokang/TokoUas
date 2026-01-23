@@ -11,11 +11,10 @@ form.addEventListener('submit', (e) => {
     return;
   }
 
-  // Simpan session sederhana
   localStorage.setItem('user', JSON.stringify({
-    username
+    username,
+    loginAt: new Date().toISOString()
   }));
 
-  // Redirect ke app
   window.location.href = 'index.html';
 });
