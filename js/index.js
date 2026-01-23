@@ -1,5 +1,5 @@
 import { initChat } from './chat.js';
-
+const ADMIN_WA = '6287755466435';
 /* ================= STATE ================= */
 const state = {
   user: null,
@@ -96,9 +96,14 @@ function renderLoginState() {
   if (state.user && state.user.username) {
     if (loginBanner) loginBanner.style.display = 'none';
     authArea.innerHTML = `
-      <p>Login sebagai <b>${state.user.username}</b></p>
-      <button id="logoutBtn">Logout</button>
-    `;
+  <div class="profile-card">
+    <div class="profile-avatar">👤</div>
+    <b>${state.user.username}</b>
+    <p class="profile-role">Pelanggan DapoerUyut</p>
+    <button id="logoutBtn">Logout</button>
+  </div>
+`;
+
     document.getElementById('logoutBtn').addEventListener('click', () => {
       localStorage.removeItem('user');
       state.user = null;
@@ -394,12 +399,13 @@ function bindCheckout() {
 
   const checkoutName = document.getElementById('checkoutName');
   const checkoutAddress = document.getElementById('checkoutAddress');
+  const checkoutPhone = document.getElementById('checkoutPhone');
   const checkoutNote = document.getElementById('checkoutNote');
   const paymentMethod = document.getElementById('paymentMethod');
   const shippingMethod = document.getElementById('shippingMethod');
 
   checkoutBtn.addEventListener('click', () => {
-    // wajib login
+    // refresh user dari storage
     state.user = safeJSON(localStorage.getItem('user'));
     if (!state.user) {
       alert('Login dulu sebelum checkout!');
@@ -407,20 +413,35 @@ function bindCheckout() {
       return;
     }
 
-    if (state.cart.length === 0) return alert('Keranjang kosong');
+    // validasi keranjang
+    if (!state.cart || state.cart.length === 0) {
+      return alert('Keranjang kosong!');
+    }
 
+    // ambil data input
     const name = checkoutName.value.trim();
     const address = checkoutAddress.value.trim();
+    const phone = checkoutPhone.value.trim();
+if (!phone) return alert('Nomor WhatsApp wajib diisi');
     const note = checkoutNote.value.trim();
     const payment = paymentMethod.value;
     const shipping = shippingMethod.value;
 
-    if (!name || !address || !payment || !shipping) return alert('Lengkapi data!');
+    // validasi input
+    if (!name || !address || !phone || !payment || !shipping) {
+      return alert('Lengkapi semua data sebelum checkout!');
+    }
 
+    // biaya ongkir
     const shippingCost = shipping === 'JNE' ? 10000 : shipping === 'TIKI' ? 12000 : 8000;
 
+    // siapkan items
     const items = state.cart.map(i => ({
-      id: i.id, name: i.name, price: i.price, qty: i.qty, subtotal: i.price * i.qty
+      id: i.id,
+      name: i.name,
+      price: i.price,
+      qty: i.qty,
+      subtotal: i.price * i.qty
     }));
 
     const subtotal = items.reduce((s, i) => s + i.subtotal, 0);
@@ -429,9 +450,10 @@ function bindCheckout() {
     const now = new Date();
     const invoice = `INV-${now.getTime()}`;
 
+    // buat order object
     const order = {
       invoice,
-      customer: { name, address },
+      customer: { name, address, phone },
       note,
       items,
       subtotal,
@@ -443,15 +465,29 @@ function bindCheckout() {
       date: now.toLocaleString()
     };
 
+    // simpan order
     state.orders.push(order);
     localStorage.setItem('orders', JSON.stringify(state.orders));
 
+    // kosongkan cart
     state.cart = [];
     saveCart();
     renderCart();
     renderOrderList();
 
     alert('Pesanan berhasil dibuat!');
+
+    // kirim WA ke admin
+    sendInvoiceToWA(order);
+
+    // kirim WA ke pelanggan
+    const waLink = `https://wa.me/${phone}?text=${encodeURIComponent(
+      `Halo ${name} 👋\nPesanan kamu berhasil dibuat!\nInvoice: ${invoice}\nTotal: Rp ${total.toLocaleString()}`
+    )}`;
+    window.open(waLink, '_blank');
+
+
+    // kembali ke halaman home
     showPage('home');
   });
 }
@@ -476,11 +512,53 @@ function renderOrderList() {
       <div>Status: ${order.status}</div>
       <div>Total: Rp ${order.total.toLocaleString()}</div>
       <button class="btn-inv">Lihat Invoice</button>
+      ${order.status === 'Menunggu konfirmasi'
+    ? `<button class="btn-confirm">Konfirmasi</button>`
+    : ''}
     `;
     div.querySelector('.btn-inv').addEventListener('click', () => showInvoice(order.invoice));
     wrap.appendChild(div);
+    div.querySelector('.btn-inv').onclick = () =>
+  showInvoice(order.invoice);
+
+const confirmBtn = div.querySelector('.btn-confirm');
+if (confirmBtn) {
+  confirmBtn.onclick = () => confirmOrder(order.invoice);
+}
+
   });
 }
+
+function confirmOrder(invoice) {
+  if (!confirm('Konfirmasi pesanan ini?')) return;
+
+  const order = state.orders.find(o => o.invoice === invoice);
+  if (!order) return;
+
+  order.status = 'Dikonfirmasi';
+  localStorage.setItem('orders', JSON.stringify(state.orders));
+  renderOrderList();
+
+  const buyerWA = order.customer.phone;
+
+  const msg = `
+Halo ${order.customer.name} 👋
+Pesanan kamu sudah *DIKONFIRMASI* ✅
+
+Invoice: ${order.invoice}
+Total: Rp ${order.total.toLocaleString()}
+
+Pesanan sedang diproses 🍽️
+Terima kasih 🙏
+  `.trim();
+
+  window.open(
+  `https://wa.me/${order.customer.wa}?text=${encodeURIComponent(msg)}`,
+  '_blank'
+);
+}
+
+
 
 /* ================= INVOICE ================= */
 function showInvoice(invoiceNumber) {
@@ -490,6 +568,14 @@ function showInvoice(invoiceNumber) {
   const modal = document.getElementById('invoiceModal');
   const body = document.getElementById('invoiceBody');
   if (!modal || !body) return;
+
+  const waText = `
+INVOICE ${order.invoice}
+Nama: ${order.customer.name}
+Alamat: ${order.customer.address}
+
+Total: Rp ${order.total.toLocaleString()}
+  `.trim();
 
   body.innerHTML = `
     <h2>INVOICE</h2>
@@ -505,15 +591,50 @@ function showInvoice(invoiceNumber) {
     `).join('')}
     <hr>
     <h3>Total: Rp ${order.total.toLocaleString()}</h3>
+
+    <a 
+      href="https://wa.me/?text=${encodeURIComponent(waText)}"
+      target="_blank"
+      style="display:block;margin-top:12px"
+    >
+      📲 Kirim Invoice ke WhatsApp Saya
+    </a>
+
     <button onclick="window.print()">Print</button>
   `;
 
   modal.classList.remove('hidden');
 }
 
-document.getElementById('closeInvoice')?.addEventListener('click', () => {
-  document.getElementById('invoiceModal')?.classList.add('hidden');
-});
+
+/* ================= WHATSAPP ================= */
+function sendInvoiceToWA(order) {
+  const itemsText = order.items.map(i =>
+    `- ${i.name} x${i.qty} = Rp ${i.subtotal.toLocaleString()}`
+  ).join('\n');
+
+  const message = `
+*INVOICE DAPOERUYUT*
+No: ${order.invoice}
+
+Nama: ${order.customer.name}
+Alamat: ${order.customer.address}
+
+Pesanan:
+${itemsText}
+
+Total: Rp ${order.total.toLocaleString()}
+  `.trim();
+
+  // ✅ ADMIN
+  window.open(
+    `https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(
+      message + '\n\n🔔 ORDER BARU'
+    )}`,
+    '_blank'
+  );
+}
+
 
 /* ================= HERO ================= */
 function bindHeroActions() {
