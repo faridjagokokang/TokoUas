@@ -1,5 +1,5 @@
 import { initChat } from './chat.js';
-const ADMIN_WA = '6287755466435';
+const ADMIN_WA = '6287755466436';
 /* ================= STATE ================= */
 const state = {
   user: null,
